@@ -668,7 +668,8 @@ TEST_P(ExtProcIntegrationTest, TwoExtProcFiltersBothDuplexInBothDirectionNoTrail
   processor_stream_->sendGrpcMessage(response_body);
 
   // The ext_proc_server_0 receives the reset of the body chunks.
-  uint32_t total_req_body_msg = serverReceiveBodyDuplexStreamed("", processor_stream_, false, false);
+  uint32_t total_req_body_msg =
+      serverReceiveBodyDuplexStreamed("", processor_stream_, false, false);
 
   // The ext_proc_server_0 sends back the body responses.
   serverSendBodyRespDuplexStreamed(total_req_body_msg, processor_stream_, /*end_stream*/ true,
@@ -706,7 +707,7 @@ TEST_P(ExtProcIntegrationTest, TwoExtProcFiltersBothDuplexInBothDirectionNoTrail
 
   upstream_request_->encodeHeaders(Http::TestResponseHeaderMapImpl{{":status", "200"}}, false);
   for (int i = 0; i < 10; ++i) {
-    upstream_request_->encodeData(1024, i< 9 ? false : true);
+    upstream_request_->encodeData(1024, i < 9 ? false : true);
   }
 
   EXPECT_THAT(upstream_request_->headers(), ContainsHeader("x-new-header", "new"));
@@ -814,7 +815,8 @@ TEST_P(ExtProcIntegrationTest, KeepContentLengthDuplexStreamed) {
 }
 
 // With trailers, request direction, fully buffered
-TEST_P(ExtProcIntegrationTest, TwoExtProcFiltersBothDuplexInRequestDirectionWithTrailerFullyBuffered) {
+TEST_P(ExtProcIntegrationTest,
+       TwoExtProcFiltersBothDuplexInRequestDirectionWithTrailerFullyBuffered) {
   two_ext_proc_filters_ = true;
   config_helper_.addConfigModifier([this](envoy::config::bootstrap::v3::Bootstrap&) {
     // Filter-1
@@ -846,7 +848,8 @@ TEST_P(ExtProcIntegrationTest, TwoExtProcFiltersBothDuplexInRequestDirectionWith
   ProcessingRequest header_request;
   serverReceiveHeaderReq(header_request);
   // The ext_proc_server_0 receives the body and trailers.
-  uint32_t total_req_body_msg = serverReceiveBodyDuplexStreamed("", processor_stream_, false, false);
+  uint32_t total_req_body_msg =
+      serverReceiveBodyDuplexStreamed("", processor_stream_, false, false);
 
   // The ext_proc_server_0 sends back the header response.
   serverSendHeaderResp();
@@ -896,7 +899,8 @@ TEST_P(ExtProcIntegrationTest, TwoExtProcFiltersBothDuplexInBothDirectionWithTra
   ProcessingRequest header_request;
   serverReceiveHeaderReq(header_request);
   // The ext_proc_server_0 receives the body and trailers.
-  uint32_t total_req_body_msg = serverReceiveBodyDuplexStreamed("", processor_stream_, false, false);
+  uint32_t total_req_body_msg =
+      serverReceiveBodyDuplexStreamed("", processor_stream_, false, false);
 
   // The ext_proc_server_0 sends back the header response.
   serverSendHeaderResp();
@@ -909,13 +913,11 @@ TEST_P(ExtProcIntegrationTest, TwoExtProcFiltersBothDuplexInBothDirectionWithTra
   // The ext_proc_server_1 receives the headers.
   server1ReceiveHeaderReq(header_request);
 
-
   // The ext_proc_server_1 receives the body and trailers.
   total_req_body_msg = serverReceiveBodyDuplexStreamed("", processor_stream_1_, false, false);
 
   // The ext_proc_server_1 sends back the header response.
   server1SendHeaderResp();
-
 
   // The ext_proc_server_1 sends back the body and trailers.
   const std::string body_upstream(total_req_body_msg, 'r');
