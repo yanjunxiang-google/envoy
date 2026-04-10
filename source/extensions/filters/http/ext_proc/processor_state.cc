@@ -700,12 +700,9 @@ bool ProcessorState::isLastResponseAfterBodyResp(bool eos_seen_in_body) const {
   return false;
 }
 
-Http::FilterDataStatus ProcessorState::getBodyCallbackResultInStreamedMode(bool end_stream) {
-  if (end_stream || callbackState() == ProcessorState::CallbackState::HeadersCallback) {
-    setPaused(true);
-    return Http::FilterDataStatus::StopIterationNoBuffer;
-  }
-  return Http::FilterDataStatus::Continue;
+Http::FilterDataStatus ProcessorState::getBodyCallbackResultInStreamedMode(bool /* end_stream*/) {
+  setPaused(true);
+  return Http::FilterDataStatus::StopIterationNoBuffer;
 }
 
 bool ProcessorState::canFailOpen() const {
