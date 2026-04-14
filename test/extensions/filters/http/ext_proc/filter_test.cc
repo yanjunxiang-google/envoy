@@ -6058,6 +6058,85 @@ TEST_F(HttpFilterTest, HttpEventTrafficStatsTest) {
   filter_->onDestroy();
 }
 
+// Streaing data test with runtime guard
+// envoy.reloadable_features.ext_proc_return_stop_iteration sets to false.
+// This test can be removed when the runtime guard is removed.
+TEST_F(HttpFilterTest, StreamingSendDataRandomGrpcLatencyReturnContinue) {
+  initialize(R"EOF(
+  grpc_service:
+    envoy_grpc:
+      cluster_name: "ext_proc_server"
+  processing_mode:
+    request_header_mode: "SKIP"
+    response_header_mode: "SKIP"
+    request_body_mode: "STREAMED"
+  )EOF");
+  scoped_runtime_.mergeValues(
+      {{"envoy.reloadable_features.ext_proc_return_stop_iteration", "false"}});
+
+  HttpTestUtility::addDefaultHeaders(request_headers_);
+  request_headers_.setMethod("POST");
+  EXPECT_CALL(decoder_callbacks_, decodingBuffer()).WillRepeatedly(Return(nullptr));
+  EXPECT_EQ(FilterHeadersStatus::Continue, filter_->decodeHeaders(request_headers_, false));
+
+  const uint32_t chunk_number = 5;
+  Buffer::OwnedImpl req_data("foo");
+  // Latency 50 80 60 30 100.
+  EXPECT_EQ(FilterDataStatus::Continue, filter_->decodeData(req_data, false));
+  EXPECT_TRUE(last_request_.has_protocol_config());
+  processRequestBody(absl::nullopt, false, std::chrono::microseconds(50));
+  EXPECT_EQ(0, config_->stats().streams_closed_.value());
+
+  EXPECT_EQ(FilterDataStatus::Continue, filter_->decodeData(req_data, false));
+  EXPECT_FALSE(last_request_.has_protocol_config());
+  processRequestBody(absl::nullopt, false, std::chrono::microseconds(80));
+  EXPECT_EQ(0, config_->stats().streams_closed_.value());
+
+  EXPECT_EQ(FilterDataStatus::Continue, filter_->decodeData(req_data, false));
+  EXPECT_FALSE(last_request_.has_protocol_config());
+  processRequestBody(absl::nullopt, false, std::chrono::microseconds(60));
+  EXPECT_EQ(0, config_->stats().streams_closed_.value());
+
+  EXPECT_EQ(FilterDataStatus::Continue, filter_->decodeData(req_data, false));
+  EXPECT_FALSE(last_request_.has_protocol_config());
+  processRequestBody(absl::nullopt, false, std::chrono::microseconds(30));
+  EXPECT_EQ(0, config_->stats().streams_closed_.value());
+
+  EXPECT_EQ(FilterDataStatus::Continue, filter_->decodeData(req_data, false));
+  EXPECT_FALSE(last_request_.has_protocol_config());
+  processRequestBody(absl::nullopt, false, std::chrono::microseconds(100));
+  EXPECT_EQ(0, config_->stats().streams_closed_.value());
+
+  EXPECT_EQ(FilterTrailersStatus::Continue, filter_->decodeTrailers(request_trailers_));
+  response_headers_.addCopy(LowerCaseString(":status"), "200");
+  EXPECT_EQ(0, config_->stats().streams_closed_.value());
+
+  EXPECT_EQ(FilterHeadersStatus::Continue, filter_->encodeHeaders(response_headers_, false));
+  EXPECT_EQ(1, config_->stats().streams_closed_.value());
+  Buffer::OwnedImpl resp_data("bar");
+  EXPECT_EQ(FilterDataStatus::Continue, filter_->encodeData(resp_data, false));
+  EXPECT_EQ(FilterTrailersStatus::Continue, filter_->encodeTrailers(response_trailers_));
+  EXPECT_EQ(1, config_->stats().streams_closed_.value());
+  filter_->onDestroy();
+
+  EXPECT_EQ(1, config_->stats().streams_started_.value());
+  uint32_t total_msg = chunk_number;
+  EXPECT_EQ(total_msg, config_->stats().stream_msgs_sent_.value());
+  EXPECT_EQ(total_msg, config_->stats().stream_msgs_received_.value());
+  EXPECT_EQ(0, config_->stats().streams_failed_.value());
+  EXPECT_EQ(1, config_->stats().streams_closed_.value());
+
+  auto& grpc_calls_in = getGrpcCalls(envoy::config::core::v3::TrafficDirection::INBOUND);
+  EXPECT_TRUE(grpc_calls_in.header_stats_ == nullptr);
+  EXPECT_TRUE(grpc_calls_in.trailer_stats_ == nullptr);
+  EXPECT_TRUE(grpc_calls_in.body_stats_ != nullptr);
+  checkGrpcCallBody(*grpc_calls_in.body_stats_, chunk_number, Grpc::Status::Ok,
+                    std::chrono::microseconds(320), std::chrono::microseconds(100),
+                    std::chrono::microseconds(30));
+
+  expectNoGrpcCall(envoy::config::core::v3::TrafficDirection::OUTBOUND);
+}
+
 } // namespace
 } // namespace ExternalProcessing
 } // namespace HttpFilters
