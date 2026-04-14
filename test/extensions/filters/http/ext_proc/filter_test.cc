@@ -6058,7 +6058,7 @@ TEST_F(HttpFilterTest, HttpEventTrafficStatsTest) {
   filter_->onDestroy();
 }
 
-// Streaing data test with runtime guard
+// Streaming data test with runtime guard
 // envoy.reloadable_features.ext_proc_return_stop_iteration sets to false.
 // This test can be removed when the runtime guard is removed.
 TEST_F(HttpFilterTest, StreamingSendDataRandomGrpcLatencyReturnContinue) {
