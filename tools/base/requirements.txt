@@ -1404,8 +1404,8 @@ smmap==5.0.1 \
     --hash=sha256:dceeb6c0028fdb6734471eb07c0cd2aae706ccaecab45965ee83f11c8d3b1f62 \
     --hash=sha256:e6d8668fa5f93e706934a62d7b4db19c8d9eb8cf2adbb75ef1b675aa332b69da
     # via gitdb
-thrift==0.22.0 \
-    --hash=sha256:42e8276afbd5f54fe1d364858b6877bc5e5a4a5ed69f6a005b94ca4918fe1466
+thrift==0.23.0 \
+    --hash=sha256:5f43448a92c36ed6a450048355d10e231a1787e4c28965f08fabac0eb978914c
     # via -r requirements.in
 trycast==1.2.0 \
     --hash=sha256:5cece718b5a34378df8577f3b3aa515479611c9a37b4685d4d5aa4e6c1b4b20f \
